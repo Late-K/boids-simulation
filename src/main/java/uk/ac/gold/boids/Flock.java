@@ -1,34 +1,24 @@
 package uk.ac.gold.boids;
 
-import java.util.ArrayList;
-import java.util.List;
+// compiles boids with their flock systems
 
 public class Flock {
 
-    private final List<Boid> boids = new ArrayList<>();
+    private final Boid boids;
+    private final FlockSystem FlockSystem = new FlockSystem();
+    private final SimulationParameters params;
 
-    public void addBoid(Boid b) {
-        boids.add(b);
+    public Flock(SimulationParameters params) {
+        this.params = params;
+        this.boids = Boid.createRandom(params.numberOfBoids(), params);
     }
 
-    public List<Boid> getBoids() {
+    public Boid getBoids() {
         return boids;
     }
 
     public void update(double dt) {
-        computeForces();
-        updatePositions(dt);
-    }
-
-    private void computeForces() {
-        for (Boid b : boids) {
-            b.computeForce(boids);
-        }
-    }
-
-    private void updatePositions(double dt) {
-        for (Boid b : boids) {
-            b.updatePosition(dt);
-        }
+        FlockSystem.computeForces(boids, params);
+        FlockSystem.updatePositions(boids, params, dt);
     }
 }

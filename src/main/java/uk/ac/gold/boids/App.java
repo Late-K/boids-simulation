@@ -24,7 +24,6 @@ public class App extends Application {
     private int frameCount = 0;                   // Counter for averaging
 
     // Simulation parameters
-    private Flock flock = new Flock();
     private SimulationParameters params = new SimulationParameters(
             width,
             height,
@@ -34,16 +33,13 @@ public class App extends Application {
             150,  // separation radius (pixels)
             150,  // align radius (pixels)
             150); // cohesion radius (pixels)
+    private Flock flock = new Flock(params);
 
     @Override
     public void start(Stage stage) {
 
         Canvas canvas = new Canvas(width, height);
         GraphicsContext g = canvas.getGraphicsContext2D();
-
-        for (int i = 0; i < params.numberOfBoids(); i++) {
-            flock.addBoid(Boid.createRandomBoid(params));
-        }
 
         new AnimationTimer() {
 
@@ -64,8 +60,9 @@ public class App extends Application {
                     g.fillRect(0, 0, width, height);
 
                     // Render each boid on the canvas.
-                    for (Boid b : flock.getBoids()) {
-                        drawBoid(g, b);
+                    Boid boids = flock.getBoids();
+                    for (int i = 0; i < boids.size; i++) {
+                        drawBoid(g, boids, i);
                     }
 
                     // Display rendering frames per seconds.
@@ -80,15 +77,15 @@ public class App extends Application {
         stage.show();
     }
 
-    private void drawBoid(GraphicsContext g, Boid b) {
+    private void drawBoid(GraphicsContext g, Boid boids, int i) {
 
-        double angle = Math.toDegrees(b.direction());
+        double angle = Math.toDegrees(Math.atan2(boids.velY[i], boids.velX[i]));
 
         // Push graphics attributes on to a stack.
         g.save();
 
         // Move origin to boid position.
-        g.translate(b.position.x(), b.position.y());
+        g.translate(boids.posX[i], boids.posY[i]);
 
         // Rotate toward velocity.
         g.rotate(angle);
@@ -99,7 +96,7 @@ public class App extends Application {
         double[] xs = { front, -side, -side };
         double[] ys = { 0, -side, side };
 
-        double speed = b.velocity.magnitude();
+        double speed = Math.sqrt(boids.velX[i] * boids.velX[i] + boids.velY[i] * boids.velY[i]);
         g.setFill(Color.hsb((speed / params.maxSpeed()) * 360, 1, 1, 0.8));
 
         g.fillPolygon(xs, ys, 3);
