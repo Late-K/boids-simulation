@@ -12,8 +12,8 @@ public class FlockSystem {
                     .add(alignment(i, boids, params))
                     .add(cohesion(i, boids, params))
                     .add(avoidEdges(i, boids, params));
-            boids.accX[i] = acc.x();
-            boids.accY[i] = acc.y();
+            boids.accX[i] = acc.x;
+            boids.accY[i] = acc.y;
         });
     }
 
@@ -22,12 +22,12 @@ public class FlockSystem {
             Vector2 vel = new Vector2(boids.velX[i], boids.velY[i]);
             Vector2 acc = new Vector2(boids.accX[i], boids.accY[i]);
 
-            vel = vel.add(acc.multiply(dt)).limit(params.maxSpeed());
+            vel.add(acc.multiply(dt)).limit(params.maxSpeed());
 
-            boids.velX[i] = vel.x();
-            boids.velY[i] = vel.y();
-            boids.posX[i] += vel.x() * dt;
-            boids.posY[i] += vel.y() * dt;
+            boids.velX[i] = vel.x;
+            boids.velY[i] = vel.y;
+            boids.posX[i] += vel.x * dt;
+            boids.posY[i] += vel.y * dt;
 
             // Reset acceleration vector to zero for next frame.
             boids.accX[i] = 0;
@@ -39,13 +39,14 @@ public class FlockSystem {
         Vector2 pos = new Vector2(boids.posX[i], boids.posY[i]);
         Vector2 vel = new Vector2(boids.velX[i], boids.velY[i]);
         Vector2 steering = new Vector2(0, 0);
+        Vector2 diff = new Vector2(0, 0);
         int count = 0;
 
         for (int j = 0; j < boids.size; j++) {
-            Vector2 other = new Vector2(boids.posX[j], boids.posY[j]);
-            double d = pos.distance(other);
+            double d = pos.distance(boids.posX[j], boids.posY[j]);
             if (d > 0 && d < params.separationRadius()) {
-                steering = steering.add(pos.subtract(other).normalize().divide(d));
+                diff.set(pos.x - boids.posX[j], pos.y - boids.posY[j]).normalize().divide(d);
+                steering.add(diff);
                 count++;
             }
         }
@@ -57,20 +58,20 @@ public class FlockSystem {
                     .subtract(vel)
                     .limit(params.maxForce());
         }
-        return new Vector2(0, 0);
+        return steering.set(0, 0);
     }
 
     private Vector2 alignment(int i, Boid boids, SimulationParameters params) {
         Vector2 pos = new Vector2(boids.posX[i], boids.posY[i]);
         Vector2 vel = new Vector2(boids.velX[i], boids.velY[i]);
         Vector2 steering = new Vector2(0, 0);
+        Vector2 neighbourVel = new Vector2(0, 0);
         int count = 0;
 
         for (int j = 0; j < boids.size; j++) {
-            Vector2 other = new Vector2(boids.posX[j], boids.posY[j]);
-            double d = pos.distance(other);
+            double d = pos.distance(boids.posX[j], boids.posY[j]);
             if (d > 0 && d < params.alignRadius()) {
-                steering = steering.add(new Vector2(boids.velX[j], boids.velY[j]));
+                steering.add(neighbourVel.set(boids.velX[j], boids.velY[j]));
                 count++;
             }
         }
@@ -82,7 +83,7 @@ public class FlockSystem {
                     .subtract(vel)
                     .limit(params.maxForce());
         }
-        return new Vector2(0, 0);
+        return steering.set(0, 0);
     }
 
     private Vector2 cohesion(int i, Boid boids, SimulationParameters params) {
@@ -92,10 +93,10 @@ public class FlockSystem {
         int count = 0;
 
         for (int j = 0; j < boids.size; j++) {
-            Vector2 other = new Vector2(boids.posX[j], boids.posY[j]);
-            double d = pos.distance(other);
+            double d = pos.distance(boids.posX[j], boids.posY[j]);
             if (d > 0 && d < params.cohesionRadius()) {
-                centroid = centroid.add(other);
+                centroid.x += boids.posX[j];
+                centroid.y += boids.posY[j];
                 count++;
             }
         }
@@ -108,7 +109,7 @@ public class FlockSystem {
                     .subtract(vel)
                     .limit(params.maxForce());
         }
-        return new Vector2(0, 0);
+        return centroid.set(0, 0);
     }
 
     private Vector2 avoidEdges(int i, Boid boids, SimulationParameters params) {

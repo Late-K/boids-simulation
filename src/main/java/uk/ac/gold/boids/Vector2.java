@@ -1,21 +1,43 @@
 package uk.ac.gold.boids;
 
-public record Vector2(double x, double y) {
+public final class Vector2 {
+
+    public double x;
+    public double y;
+
+    public Vector2(double x, double y) {
+        this.x = x;
+        this.y = y;
+    }
+
+    public Vector2 set(double x, double y) {
+        this.x = x;
+        this.y = y;
+        return this;
+    }
 
     public Vector2 add(Vector2 v) {
-        return new Vector2(x + v.x, y + v.y);
+        x += v.x;
+        y += v.y;
+        return this;
     }
 
     public Vector2 subtract(Vector2 v) {
-        return new Vector2(x - v.x, y - v.y);
+        x -= v.x;
+        y -= v.y;
+        return this;
     }
 
     public Vector2 multiply(double m) {
-        return new Vector2(x * m, y * m);
+        x *= m;
+        y *= m;
+        return this;
     }
 
     public Vector2 divide(double d) {
-        return new Vector2(x / d, y / d);
+        x /= d;
+        y /= d;
+        return this;
     }
 
     public double magnitude() {
@@ -24,16 +46,32 @@ public record Vector2(double x, double y) {
 
     public Vector2 normalize() {
         double m = magnitude();
-        return m > 0 ? new Vector2(x / m, y / m) : this;
+        if (m > 0) {
+            x /= m;
+            y /= m;
+        }
+        return this;
     }
 
     public Vector2 limit(double max) {
-        return magnitude() > max ? normalize().multiply(max) : this;
+        double m2 = x * x + y * y;
+        if (m2 > max * max) {
+            double m = Math.sqrt(m2);
+            x = x / m * max;
+            y = y / m * max;
+        }
+        return this;
     }
 
     public double distance(Vector2 other) {
         double dx = x - other.x;
         double dy = y - other.y;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    public double distance(double ox, double oy) {
+        double dx = x - ox;
+        double dy = y - oy;
         return Math.sqrt(dx * dx + dy * dy);
     }
 }
