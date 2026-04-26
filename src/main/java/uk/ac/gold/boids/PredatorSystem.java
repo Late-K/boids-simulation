@@ -2,21 +2,35 @@ package uk.ac.gold.boids;
 
 import java.util.stream.IntStream;
 
-// chasing behaviour for each predator
+// flocking and chasing behaviour for each predator
 
 public class PredatorSystem {
 
-    public void computeForces(PredatorComponent predators, Boid boids, SimulationParameters params) {
+    private final ObstacleSystem obstacleSystem = new ObstacleSystem();
+
+    public void computeForces(PredatorComponent predators, Boid boids, ObstacleComponent obstacles, SimulationParameters params) {
         IntStream.range(0, predators.size).parallel().forEach(i -> {
-            Vector2 acc = steer(i, predators, boids, params)
-                    .add(separatePredators(i, predators, params))
-                    .add(avoidEdges(i, predators, params));
+            Vector2 acc = avoidEdges(i, predators, params)
+                .add(obstacleSystem.avoid(predators.posX[i], predators.posY[i], params.predatorMaxForce(), obstacles, params.fleeRadius() * 0.4));
+
+            if (!isOutsideCanvas(i, predators, params)) {
+            acc.add(chaseOrIdle(i, predators, boids, params))
+                .add(separation(i, predators, params));
+            }
+
             predators.accX[i] = acc.x;
             predators.accY[i] = acc.y;
         });
     }
 
-    public void updatePositions(PredatorComponent predators, SimulationParameters params, double dt) {
+        private boolean isOutsideCanvas(int i, PredatorComponent predators, SimulationParameters params) {
+        return predators.posX[i] < 0
+            || predators.posX[i] > params.width()
+            || predators.posY[i] < 0
+            || predators.posY[i] > params.height();
+        }
+
+    public void updatePositions(PredatorComponent predators, ObstacleComponent obstacles, SimulationParameters params, double dt) {
         for (int i = 0; i < predators.size; i++) {
             Vector2 vel = new Vector2(predators.velX[i], predators.velY[i]);
             Vector2 acc = new Vector2(predators.accX[i], predators.accY[i]);
@@ -32,62 +46,11 @@ public class PredatorSystem {
             predators.accX[i] = 0;
             predators.accY[i] = 0;
 
-            clampToBounds(i, predators, params);
+            obstacleSystem.resolveCollision(predators.posX, predators.posY, predators.velX, predators.velY, i, obstacles, 8);
         }
     }
 
-    private Vector2 steer(int i, PredatorComponent predators, Boid boids, SimulationParameters params) {
-        Vector2 pos = new Vector2(predators.posX[i], predators.posY[i]);
-        Vector2 vel = new Vector2(predators.velX[i], predators.velY[i]);
-
-        double nearestDist = Double.MAX_VALUE;
-        int nearestIdx = -1;
-
-        for (int j = 0; j < boids.size; j++) {
-            double d = pos.distance(boids.posX[j], boids.posY[j]);
-            if (d < nearestDist) {
-                nearestDist = d;
-                nearestIdx = j;
-            }
-        }
-
-        if (nearestIdx >= 0 && nearestDist <= params.predatorChaseRadius()) {
-            // Chase
-            Vector2 target = new Vector2(boids.posX[nearestIdx], boids.posY[nearestIdx]);
-            return target.subtract(pos)
-                    .normalize()
-                    .multiply(params.predatorMaxSpeed())
-                    .subtract(vel)
-                    .limit(params.predatorMaxForce());
-        } else {
-            // Wander
-            return wander(i, predators, params);
-        }
-    }
-
-    private Vector2 wander(int i, PredatorComponent predators, SimulationParameters params) {
-        predators.wanderAngle[i] += (Math.random() - 0.5) * 0.4;
-
-        double vx = predators.velX[i];
-        double vy = predators.velY[i];
-        double speed = Math.sqrt(vx * vx + vy * vy);
-
-        double cx = speed > 1e-6 ? predators.posX[i] + (vx / speed) * 150 : predators.posX[i] + 150;
-        double cy = speed > 1e-6 ? predators.posY[i] + (vy / speed) * 150 : predators.posY[i];
-
-        double tx = cx + Math.cos(predators.wanderAngle[i]) * 80;
-        double ty = cy + Math.sin(predators.wanderAngle[i]) * 80;
-
-        Vector2 pos = new Vector2(predators.posX[i], predators.posY[i]);
-        Vector2 vel = new Vector2(vx, vy);
-        return new Vector2(tx - pos.x, ty - pos.y)
-                .normalize()
-                .multiply(params.predatorMaxSpeed() * 0.6)
-                .subtract(vel)
-                .limit(params.predatorMaxForce() * 0.5);
-    }
-
-    private Vector2 separatePredators(int i, PredatorComponent predators, SimulationParameters params) {
+    private Vector2 separation(int i, PredatorComponent predators, SimulationParameters params) {
         double separationRadius = params.width() * 0.25;
         Vector2 pos = new Vector2(predators.posX[i], predators.posY[i]);
         Vector2 vel = new Vector2(predators.velX[i], predators.velY[i]);
@@ -114,31 +77,96 @@ public class PredatorSystem {
         return steering.set(0, 0);
     }
 
-    private Vector2 avoidEdges(int i, PredatorComponent predators, SimulationParameters params) {
-        double margin = params.width() * 0.12;
-        double strength = params.predatorMaxForce() * 3.0;
-        double sx = 0, sy = 0;
-        if (predators.posX[i] < margin) {
-            double t = 1.0 - (predators.posX[i] / margin);
-            sx += strength * t;
-        } else if (predators.posX[i] > params.width() - margin) {
-            double t = 1.0 - ((params.width() - predators.posX[i]) / margin);
-            sx -= strength * t;
+    private Vector2 alignment(int i, PredatorComponent predators, SimulationParameters params) {
+        double alignRadius = params.predatorChaseRadius() * 0.5;
+        Vector2 pos = new Vector2(predators.posX[i], predators.posY[i]);
+        Vector2 vel = new Vector2(predators.velX[i], predators.velY[i]);
+        Vector2 steering = new Vector2(0, 0);
+        Vector2 neighbourVel = new Vector2(0, 0);
+        int count = 0;
+
+        for (int j = 0; j < predators.size; j++) {
+            double d = pos.distance(predators.posX[j], predators.posY[j]);
+            if (d > 0 && d < alignRadius) {
+                steering.add(neighbourVel.set(predators.velX[j], predators.velY[j]));
+                count++;
+            }
         }
-        if (predators.posY[i] < margin) {
-            double t = 1.0 - (predators.posY[i] / margin);
-            sy += strength * t;
-        } else if (predators.posY[i] > params.height() - margin) {
-            double t = 1.0 - ((params.height() - predators.posY[i]) / margin);
-            sy -= strength * t;
+
+        if (count > 0) {
+            return steering.divide(count)
+                    .normalize()
+                    .multiply(params.predatorMaxSpeed())
+                    .subtract(vel)
+                    .limit(params.predatorMaxForce() * 0.45);
         }
-        return new Vector2(sx, sy);
+        return steering.set(0, 0);
     }
 
-    private void clampToBounds(int i, PredatorComponent predators, SimulationParameters params) {
-        if (predators.posX[i] < 0) { predators.posX[i] = 0; predators.velX[i] = Math.abs(predators.velX[i]); }
-        else if (predators.posX[i] > params.width()) { predators.posX[i] = params.width(); predators.velX[i] = -Math.abs(predators.velX[i]); }
-        if (predators.posY[i] < 0) { predators.posY[i] = 0; predators.velY[i] = Math.abs(predators.velY[i]); }
-        else if (predators.posY[i] > params.height()) { predators.posY[i] = params.height(); predators.velY[i] = -Math.abs(predators.velY[i]); }
+    private Vector2 cohesion(int i, PredatorComponent predators, SimulationParameters params) {
+        double cohesionRadius = params.predatorChaseRadius() * 0.5;
+        Vector2 pos = new Vector2(predators.posX[i], predators.posY[i]);
+        Vector2 vel = new Vector2(predators.velX[i], predators.velY[i]);
+        Vector2 centroid = new Vector2(0, 0);
+        int count = 0;
+
+        for (int j = 0; j < predators.size; j++) {
+            double d = pos.distance(predators.posX[j], predators.posY[j]);
+            if (d > 0 && d < cohesionRadius) {
+                centroid.x += predators.posX[j];
+                centroid.y += predators.posY[j];
+                count++;
+            }
+        }
+
+        if (count > 0) {
+            return centroid.divide(count)
+                    .subtract(pos)
+                    .normalize()
+                    .multiply(params.predatorMaxSpeed() * 0.75)
+                    .subtract(vel)
+                    .limit(params.predatorMaxForce() * 0.35);
+        }
+        return centroid.set(0, 0);
+    }
+
+    private Vector2 chaseOrIdle(int i, PredatorComponent predators, Boid boids, SimulationParameters params) {
+        Vector2 pos = new Vector2(predators.posX[i], predators.posY[i]);
+        Vector2 vel = new Vector2(predators.velX[i], predators.velY[i]);
+
+        double nearestDist = Double.MAX_VALUE;
+        int nearestIdx = -1;
+
+        for (int j = 0; j < boids.size; j++) {
+            double d = pos.distance(boids.posX[j], boids.posY[j]);
+            if (d < nearestDist) {
+                nearestDist = d;
+                nearestIdx = j;
+            }
+        }
+
+        if (nearestIdx >= 0 && nearestDist <= params.predatorChaseRadius()) {
+            // chase nearest boid when one is close enough.
+            Vector2 target = new Vector2(boids.posX[nearestIdx], boids.posY[nearestIdx]);
+            return target.subtract(pos)
+                    .normalize()
+                    .multiply(params.predatorMaxSpeed())
+                    .subtract(vel)
+                    .limit(params.predatorMaxForce());
+        }
+        // idle using flock-style motion.
+        return alignment(i, predators, params)
+                .add(cohesion(i, predators, params));
+    }
+
+    private Vector2 avoidEdges(int i, PredatorComponent predators, SimulationParameters params) {
+        double margin = params.width() * 0.1;
+        double turnForce = params.predatorMaxForce() / 2.5;
+        double sx = 0, sy = 0;
+        if (predators.posX[i] < margin)                            sx += turnForce;
+        else if (predators.posX[i] > params.width() - margin)      sx -= turnForce;
+        if (predators.posY[i] < margin)                            sy += turnForce;
+        else if (predators.posY[i] > params.height() - margin)     sy -= turnForce;
+        return new Vector2(sx, sy);
     }
 }

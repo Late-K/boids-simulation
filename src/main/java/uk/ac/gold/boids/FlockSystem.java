@@ -6,19 +6,22 @@ import java.util.stream.IntStream;
 
 public class FlockSystem {
 
-    public void computeForces(Boid boids, PredatorComponent predators, SimulationParameters params) {
+    private final ObstacleSystem obstacleSystem = new ObstacleSystem();
+
+    public void computeForces(Boid boids, PredatorComponent predators, ObstacleComponent obstacles, SimulationParameters params) {
         IntStream.range(0, boids.size).parallel().forEach(i -> {
             Vector2 acc = separation(i, boids, params)
                     .add(alignment(i, boids, params))
                     .add(cohesion(i, boids, params))
                     .add(avoidEdges(i, boids, params))
-                    .add(fleeFromPredators(i, boids, predators, params));
+                    .add(fleeFromPredators(i, boids, predators, params))
+                    .add(obstacleSystem.avoid(boids.posX[i], boids.posY[i], params.maxForce(), obstacles, params.separationRadius() * 0.75));
             boids.accX[i] = acc.x;
             boids.accY[i] = acc.y;
         });
     }
 
-    public void updatePositions(Boid boids, SimulationParameters params, double dt) {
+    public void updatePositions(Boid boids, ObstacleComponent obstacles, SimulationParameters params, double dt) {
         for (int i = 0; i < boids.size; i++) {
             Vector2 vel = new Vector2(boids.velX[i], boids.velY[i]);
             Vector2 acc = new Vector2(boids.accX[i], boids.accY[i]);
@@ -34,15 +37,8 @@ public class FlockSystem {
             boids.accX[i] = 0;
             boids.accY[i] = 0;
 
-            clampToBounds(i, boids, params);
+            obstacleSystem.resolveCollision(boids.posX, boids.posY, boids.velX, boids.velY, i, obstacles, 4);
         }
-    }
-
-    private void clampToBounds(int i, Boid boids, SimulationParameters params) {
-        if (boids.posX[i] < 0) { boids.posX[i] = 0; boids.velX[i] = Math.abs(boids.velX[i]); }
-        else if (boids.posX[i] > params.width()) { boids.posX[i] = params.width(); boids.velX[i] = -Math.abs(boids.velX[i]); }
-        if (boids.posY[i] < 0) { boids.posY[i] = 0; boids.velY[i] = Math.abs(boids.velY[i]); }
-        else if (boids.posY[i] > params.height()) { boids.posY[i] = params.height(); boids.velY[i] = -Math.abs(boids.velY[i]); }
     }
 
     private Vector2 separation(int i, Boid boids, SimulationParameters params) {

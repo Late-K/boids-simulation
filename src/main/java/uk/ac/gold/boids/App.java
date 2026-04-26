@@ -40,11 +40,44 @@ public class App extends Application {
             400); // predator chase radius (pixels) - how far predator can sense boids
     private Flock flock = new Flock(params);
 
+    // Mouse drag for square obstacle creation.
+    private boolean drawingObstacle = false;
+    private double drawStartX;
+    private double drawStartY;
+    private double drawEndX;
+    private double drawEndY;
+
     @Override
     public void start(Stage stage) {
 
         Canvas canvas = new Canvas(width, height);
         GraphicsContext g = canvas.getGraphicsContext2D();
+
+        canvas.setOnMousePressed(e -> {
+            drawingObstacle = true;
+            drawStartX = e.getX();
+            drawStartY = e.getY();
+            drawEndX = drawStartX;
+            drawEndY = drawStartY;
+        });
+
+        canvas.setOnMouseDragged(e -> {
+            if (!drawingObstacle) {
+                return;
+            }
+            drawEndX = e.getX();
+            drawEndY = e.getY();
+        });
+
+        canvas.setOnMouseReleased(e -> {
+            if (!drawingObstacle) {
+                return;
+            }
+            drawEndX = e.getX();
+            drawEndY = e.getY();
+            flock.addObstacleFromCorners(drawStartX, drawStartY, drawEndX, drawEndY);
+            drawingObstacle = false;
+        });
 
         new AnimationTimer() {
 
@@ -64,6 +97,12 @@ public class App extends Application {
                     g.setFill(Color.BLACK);
                     g.fillRect(0, 0, width, height);
 
+                    // Render obstacles.
+                    ObstacleComponent obstacles = flock.getObstacles();
+                    for (int i = 0; i < obstacles.size; i++) {
+                        drawObstacle(g, obstacles, i);
+                    }
+
                     // Render each boid on the canvas.
                     Boid boids = flock.getBoids();
                     for (int i = 0; i < boids.size; i++) {
@@ -74,6 +113,10 @@ public class App extends Application {
                     PredatorComponent predators = flock.getPredators();
                     for (int i = 0; i < predators.size; i++) {
                         drawPredator(g, predators, i);
+                    }
+
+                    if (drawingObstacle) {
+                        drawObstaclePreview(g, drawStartX, drawStartY, drawEndX, drawEndY);
                     }
 
                     // Display rendering frames per seconds.
@@ -114,6 +157,42 @@ public class App extends Application {
 
         // Restore previous graphics attributes.
         g.restore();
+    }
+
+    private void drawObstacle(GraphicsContext g, ObstacleComponent obstacles, int i) {
+        double x = obstacles.minX[i];
+        double y = obstacles.minY[i];
+        double w = obstacles.maxX[i] - obstacles.minX[i];
+        double h = obstacles.maxY[i] - obstacles.minY[i];
+
+        g.save();
+        g.setFill(Color.rgb(180, 180, 180, 0.35));
+        g.fillRect(x, y, w, h);
+        g.setStroke(Color.rgb(230, 230, 230, 0.85));
+        g.setLineWidth(2);
+        g.strokeRect(x, y, w, h);
+        g.restore();
+    }
+
+    private void drawObstaclePreview(GraphicsContext g, double startX, double startY, double endX, double endY) {
+        double[] bounds = toRectangleBounds(startX, startY, endX, endY);
+        g.save();
+        g.setFill(Color.rgb(120, 180, 255, 0.2));
+        g.fillRect(bounds[0], bounds[1], bounds[2], bounds[3]);
+        g.setStroke(Color.rgb(120, 180, 255, 0.9));
+        g.setLineWidth(2);
+        g.strokeRect(bounds[0], bounds[1], bounds[2], bounds[3]);
+        g.restore();
+    }
+
+    private double[] toRectangleBounds(double startX, double startY, double endX, double endY) {
+        double[] rectangle = ObstacleComponent.toBoundsFromCorners(startX, startY, endX, endY);
+        return new double[] {
+                rectangle[0],
+                rectangle[1],
+                rectangle[2] - rectangle[0],
+                rectangle[3] - rectangle[1]
+        };
     }
 
     private void drawPredator(GraphicsContext g, PredatorComponent predators, int i) {
