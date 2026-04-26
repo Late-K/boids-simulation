@@ -8,5 +8,10 @@ public record SimulationParameters(
         double maxForce,
         double separationRadius,
         double alignRadius,
-        double cohesionRadius) {
+        double cohesionRadius,
+        int numberOfPredators,
+        double predatorMaxSpeed,
+        double predatorMaxForce,
+        double fleeRadius,
+        double predatorChaseRadius) {
 }

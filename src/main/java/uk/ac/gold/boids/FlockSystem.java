@@ -6,12 +6,13 @@ import java.util.stream.IntStream;
 
 public class FlockSystem {
 
-    public void computeForces(Boid boids, SimulationParameters params) {
+    public void computeForces(Boid boids, PredatorComponent predators, SimulationParameters params) {
         IntStream.range(0, boids.size).parallel().forEach(i -> {
             Vector2 acc = separation(i, boids, params)
                     .add(alignment(i, boids, params))
                     .add(cohesion(i, boids, params))
-                    .add(avoidEdges(i, boids, params));
+                    .add(avoidEdges(i, boids, params))
+                    .add(fleeFromPredators(i, boids, predators, params));
             boids.accX[i] = acc.x;
             boids.accY[i] = acc.y;
         });
@@ -32,7 +33,16 @@ public class FlockSystem {
             // Reset acceleration vector to zero for next frame.
             boids.accX[i] = 0;
             boids.accY[i] = 0;
+
+            clampToBounds(i, boids, params);
         }
+    }
+
+    private void clampToBounds(int i, Boid boids, SimulationParameters params) {
+        if (boids.posX[i] < 0) { boids.posX[i] = 0; boids.velX[i] = Math.abs(boids.velX[i]); }
+        else if (boids.posX[i] > params.width()) { boids.posX[i] = params.width(); boids.velX[i] = -Math.abs(boids.velX[i]); }
+        if (boids.posY[i] < 0) { boids.posY[i] = 0; boids.velY[i] = Math.abs(boids.velY[i]); }
+        else if (boids.posY[i] > params.height()) { boids.posY[i] = params.height(); boids.velY[i] = -Math.abs(boids.velY[i]); }
     }
 
     private Vector2 separation(int i, Boid boids, SimulationParameters params) {
@@ -110,6 +120,33 @@ public class FlockSystem {
                     .limit(params.maxForce());
         }
         return centroid.set(0, 0);
+    }
+
+    private Vector2 fleeFromPredators(int i, Boid boids, PredatorComponent predators, SimulationParameters params) {
+        Vector2 pos = new Vector2(boids.posX[i], boids.posY[i]);
+        Vector2 vel = new Vector2(boids.velX[i], boids.velY[i]);
+        Vector2 steering = new Vector2(0, 0);
+        int count = 0;
+
+        for (int j = 0; j < predators.size; j++) {
+            double d = pos.distance(predators.posX[j], predators.posY[j]);
+            if (d > 0 && d < params.fleeRadius()) {
+                Vector2 diff = new Vector2(pos.x - predators.posX[j], pos.y - predators.posY[j])
+                        .normalize()
+                        .divide(d);
+                steering.add(diff);
+                count++;
+            }
+        }
+
+        if (count > 0) {
+            return steering.divide(count)
+                    .normalize()
+                    .multiply(params.maxSpeed())
+                    .subtract(vel)
+                    .limit(params.maxForce() * 1.2);
+        }
+        return new Vector2(0, 0);
     }
 
     private Vector2 avoidEdges(int i, Boid boids, SimulationParameters params) {

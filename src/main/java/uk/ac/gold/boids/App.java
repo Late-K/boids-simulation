@@ -32,7 +32,12 @@ public class App extends Application {
             280,  // max force (pixels/sec²)
             150,  // separation radius (pixels)
             150,  // align radius (pixels)
-            150); // cohesion radius (pixels)
+            150,  // cohesion radius (pixels)
+            3,    // number of predators
+            320,  // predator max speed (pixels/sec)
+            350,  // predator max force (pixels/sec²)
+            200,  // flee radius (pixels) - how close a boid must be to flee
+            400); // predator chase radius (pixels) - how far predator can sense boids
     private Flock flock = new Flock(params);
 
     @Override
@@ -63,6 +68,12 @@ public class App extends Application {
                     Boid boids = flock.getBoids();
                     for (int i = 0; i < boids.size; i++) {
                         drawBoid(g, boids, i);
+                    }
+
+                    // Render predators.
+                    PredatorComponent predators = flock.getPredators();
+                    for (int i = 0; i < predators.size; i++) {
+                        drawPredator(g, predators, i);
                     }
 
                     // Display rendering frames per seconds.
@@ -102,6 +113,25 @@ public class App extends Application {
         g.fillPolygon(xs, ys, 3);
 
         // Restore previous graphics attributes.
+        g.restore();
+    }
+
+    private void drawPredator(GraphicsContext g, PredatorComponent predators, int i) {
+        double angle = Math.toDegrees(Math.atan2(predators.velY[i], predators.velX[i]));
+
+        g.save();
+        g.translate(predators.posX[i], predators.posY[i]);
+        g.rotate(angle);
+
+        double front = 20;
+        double side = 10;
+
+        double[] xs = { front, -side, -side };
+        double[] ys = { 0, -side, side };
+
+        g.setFill(Color.rgb(220, 30, 30, 0.9));
+        g.fillPolygon(xs, ys, 3);
+
         g.restore();
     }
 
