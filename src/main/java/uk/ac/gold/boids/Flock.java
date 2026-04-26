@@ -9,10 +9,8 @@ public class Flock {
     private final ObstacleComponent obstacles;
     private final FlockSystem flockSystem = new FlockSystem();
     private final PredatorSystem predatorSystem = new PredatorSystem();
-    private final SimulationParameters params;
 
     public Flock(SimulationParameters params) {
-        this.params = params;
         this.boids = Boid.createRandom(params.numberOfBoids(), params);
         this.predators = PredatorComponent.createRandom(params.numberOfPredators(), params);
         this.obstacles = new ObstacleComponent(256);
@@ -34,7 +32,7 @@ public class Flock {
         return obstacles.addFromCorners(startX, startY, endX, endY, 12);
     }
 
-    public void update(double dt) {
+    public void update(double dt, SimulationParameters params) {
         flockSystem.computeForces(boids, predators, obstacles, params);
         flockSystem.updatePositions(boids, obstacles, params, dt);
         predatorSystem.computeForces(predators, boids, obstacles, params);
