@@ -56,6 +56,30 @@ public class SimulationController {
         return flock.addObstacleFromCorners(startX, startY, endX, endY);
     }
 
+    public void setBoidCount(int count) {
+        params = new SimulationParameters(
+                width, height,
+                count,
+                params.maxSpeed(), params.maxForce(),
+                params.separationRadius(), params.alignRadius(), params.cohesionRadius(),
+                params.numberOfPredators(),
+                params.predatorMaxSpeed(), params.predatorMaxForce(),
+                params.fleeRadius(), params.predatorChaseRadius());
+        flock.setBoidCount(count, params);
+    }
+
+    public void setPredatorCount(int count) {
+        params = new SimulationParameters(
+                width, height,
+                params.numberOfBoids(),
+                params.maxSpeed(), params.maxForce(),
+                params.separationRadius(), params.alignRadius(), params.cohesionRadius(),
+                count,
+                params.predatorMaxSpeed(), params.predatorMaxForce(),
+                params.fleeRadius(), params.predatorChaseRadius());
+        flock.setPredatorCount(count, params);
+    }
+
     public void updateTuning(
             double maxSpeed,
             double maxForce,
@@ -80,35 +104,6 @@ public class SimulationController {
                 predatorMaxForce,
                 fleeRadius,
                 predatorChaseRadius);
-    }
-
-    public void applySettings(
-            int numberOfBoids,
-            int numberOfPredators,
-            double maxSpeed,
-            double maxForce,
-            double separationRadius,
-            double alignRadius,
-            double cohesionRadius,
-            double predatorMaxSpeed,
-            double predatorMaxForce,
-            double fleeRadius,
-            double predatorChaseRadius) {
-        params = new SimulationParameters(
-                width,
-                height,
-                numberOfBoids,
-                maxSpeed,
-                maxForce,
-                separationRadius,
-                alignRadius,
-                cohesionRadius,
-                numberOfPredators,
-                predatorMaxSpeed,
-                predatorMaxForce,
-                fleeRadius,
-                predatorChaseRadius);
-        flock = new Flock(params);
     }
 
     private SimulationParameters createDefaultParameters() {

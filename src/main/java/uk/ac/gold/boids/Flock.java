@@ -4,8 +4,8 @@ package uk.ac.gold.boids;
 
 public class Flock {
 
-    private final Boid boids;
-    private final PredatorComponent predators;
+    private Boid boids;
+    private PredatorComponent predators;
     private final ObstacleComponent obstacles;
     private final FlockSystem flockSystem = new FlockSystem();
     private final PredatorSystem predatorSystem = new PredatorSystem();
@@ -30,6 +30,14 @@ public class Flock {
 
     public boolean addObstacleFromCorners(double startX, double startY, double endX, double endY) {
         return obstacles.addFromCorners(startX, startY, endX, endY, 12);
+    }
+
+    public void setBoidCount(int count, SimulationParameters params) {
+        boids = Boid.createWithCount(boids, count, params);
+    }
+
+    public void setPredatorCount(int count, SimulationParameters params) {
+        predators = PredatorComponent.createWithCount(predators, count, params);
     }
 
     public void update(double dt, SimulationParameters params) {

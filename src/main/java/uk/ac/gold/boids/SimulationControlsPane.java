@@ -1,6 +1,5 @@
 package uk.ac.gold.boids;
 
-import javafx.geometry.Insets;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Spinner;
@@ -37,29 +36,19 @@ public class SimulationControlsPane extends VBox {
 
         SimulationParameters params = simulationController.getParams();
 
-        boidsSpinner        = createCountSpinner(params.numberOfBoids(), 10, 5000);
-        predatorsSpinner    = createCountSpinner(params.numberOfPredators(), 0, 50);
-        maxSpeedSpinner     = createDoubleSpinner(params.maxSpeed(), 10, 1000, 10);
-        maxForceSpinner     = createDoubleSpinner(params.maxForce(), 10, 1000, 10);
-        separationSpinner   = createDoubleSpinner(params.separationRadius(), 10, 500, 5);
-        alignSpinner        = createDoubleSpinner(params.alignRadius(), 10, 500, 5);
-        cohesionSpinner     = createDoubleSpinner(params.cohesionRadius(), 10, 500, 5);
-        predatorSpeedSpinner = createDoubleSpinner(params.predatorMaxSpeed(), 10, 1000, 10);
-        predatorForceSpinner = createDoubleSpinner(params.predatorMaxForce(), 10, 1000, 10);
-        fleeSpinner         = createDoubleSpinner(params.fleeRadius(), 10, 600, 10);
-        chaseSpinner        = createDoubleSpinner(params.predatorChaseRadius(), 10, 800, 10);
+        boidsSpinner        = createCountSpinner(params.numberOfBoids(), 0, 9999);
+        predatorsSpinner    = createCountSpinner(params.numberOfPredators(), 0, 9999);
+        maxSpeedSpinner     = createDoubleSpinner(params.maxSpeed(), 10, 9999, 10);
+        maxForceSpinner     = createDoubleSpinner(params.maxForce(), 10, 9999, 10);
+        separationSpinner   = createDoubleSpinner(params.separationRadius(), 10, 9999, 5);
+        alignSpinner        = createDoubleSpinner(params.alignRadius(), 10, 9999, 5);
+        cohesionSpinner     = createDoubleSpinner(params.cohesionRadius(), 10, 9999, 5);
+        predatorSpeedSpinner = createDoubleSpinner(params.predatorMaxSpeed(), 10, 9999, 10);
+        predatorForceSpinner = createDoubleSpinner(params.predatorMaxForce(), 10, 9999, 10);
+        fleeSpinner         = createDoubleSpinner(params.fleeRadius(), 10, 9999, 10);
+        chaseSpinner        = createDoubleSpinner(params.predatorChaseRadius(), 10, 9999, 10);
 
-        setSpacing(4);
-        setPadding(new Insets(8));
-        setMaxWidth(240);
-        setMaxHeight(USE_PREF_SIZE);
-        setTranslateX(8);
-        setTranslateY(48);
-        setStyle("-fx-background-color: transparent;"
-                + "-fx-border-color: rgba(255,255,255,0.25);"
-                + "-fx-border-width: 1;");
-
-        getChildren().addAll(
+        VBox content = new VBox(5,
                 row("Boids",       boidsSpinner),
                 row("Predators",   predatorsSpinner),
                 row("Boid speed",  maxSpeedSpinner),
@@ -74,6 +63,22 @@ public class SimulationControlsPane extends VBox {
                 statusLabel,
                 actionBar());
 
+        Button toggleButton = new Button("Hide");
+        toggleButton.setOnAction(e -> {
+            boolean nowVisible = !content.isVisible();
+            content.setVisible(nowVisible);
+            content.setManaged(nowVisible);
+            toggleButton.setText(nowVisible ? "Hide" : "Show");
+        });
+
+        setMaxWidth(240);
+        setMaxHeight(USE_PREF_SIZE);
+        setTranslateX(8);
+        setTranslateY(48);
+        setStyle("-fx-background-color: transparent;");
+
+        getChildren().addAll(toggleButton, content);
+
         bindLiveParameter(maxSpeedSpinner);
         bindLiveParameter(maxForceSpinner);
         bindLiveParameter(separationSpinner);
@@ -83,6 +88,8 @@ public class SimulationControlsPane extends VBox {
         bindLiveParameter(predatorForceSpinner);
         bindLiveParameter(fleeSpinner);
         bindLiveParameter(chaseSpinner);
+        bindCountParameter(boidsSpinner, simulationController::setBoidCount);
+        bindCountParameter(predatorsSpinner, simulationController::setPredatorCount);
 
         refreshStatus();
     }
@@ -95,10 +102,6 @@ public class SimulationControlsPane extends VBox {
     }
 
     private HBox actionBar() {
-        Button applyButton = new Button("Apply");
-        applyButton.setMaxWidth(Double.MAX_VALUE);
-        applyButton.setOnAction(event -> applySettings());
-
         pauseButton.setMaxWidth(Double.MAX_VALUE);
         pauseButton.setOnAction(event -> {
             simulationController.togglePaused();
@@ -109,8 +112,7 @@ public class SimulationControlsPane extends VBox {
         resetButton.setMaxWidth(Double.MAX_VALUE);
         resetButton.setOnAction(event -> resetSettings());
 
-        HBox bar = new HBox(4, applyButton, pauseButton, resetButton);
-        HBox.setHgrow(applyButton, Priority.ALWAYS);
+        HBox bar = new HBox(4, pauseButton, resetButton);
         HBox.setHgrow(pauseButton, Priority.ALWAYS);
         HBox.setHgrow(resetButton, Priority.ALWAYS);
         return bar;
@@ -138,6 +140,15 @@ public class SimulationControlsPane extends VBox {
         spinner.valueProperty().addListener((obs, oldValue, newValue) -> {
             if (!updatingControls) {
                 applyLiveTuning();
+            }
+        });
+    }
+
+    private void bindCountParameter(Spinner<Integer> spinner, java.util.function.IntConsumer setter) {
+        spinner.valueProperty().addListener((obs, oldValue, newValue) -> {
+            if (!updatingControls && newValue != null) {
+                commitEditorText(spinner);
+                setter.accept(spinner.getValue());
             }
         });
     }
@@ -181,23 +192,6 @@ public class SimulationControlsPane extends VBox {
         refreshStatus();
     }
 
-    private void applySettings() {
-        commitAllEditors();
-        simulationController.applySettings(
-                boidsSpinner.getValue(),
-                predatorsSpinner.getValue(),
-                maxSpeedSpinner.getValue(),
-                maxForceSpinner.getValue(),
-                separationSpinner.getValue(),
-                alignSpinner.getValue(),
-                cohesionSpinner.getValue(),
-                predatorSpeedSpinner.getValue(),
-                predatorForceSpinner.getValue(),
-                fleeSpinner.getValue(),
-                chaseSpinner.getValue());
-        refreshStatus();
-    }
-
     private void resetSettings() {
         SimulationParameters defaults = simulationController.getDefaultParams();
 
@@ -217,20 +211,6 @@ public class SimulationControlsPane extends VBox {
 
         simulationController.reset();
         refreshStatus();
-    }
-
-    private void commitAllEditors() {
-        commitEditorText(boidsSpinner);
-        commitEditorText(predatorsSpinner);
-        commitEditorText(maxSpeedSpinner);
-        commitEditorText(maxForceSpinner);
-        commitEditorText(separationSpinner);
-        commitEditorText(alignSpinner);
-        commitEditorText(cohesionSpinner);
-        commitEditorText(predatorSpeedSpinner);
-        commitEditorText(predatorForceSpinner);
-        commitEditorText(fleeSpinner);
-        commitEditorText(chaseSpinner);
     }
 
     private void refreshStatus() {

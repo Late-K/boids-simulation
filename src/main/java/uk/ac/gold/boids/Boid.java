@@ -28,6 +28,22 @@ public class Boid {
         return components;
     }
 
+    public static Boid createWithCount(Boid existing, int newSize, SimulationParameters params) {
+        Boid next = new Boid(newSize);
+        int copy = Math.min(existing.size, newSize);
+        System.arraycopy(existing.posX, 0, next.posX, 0, copy);
+        System.arraycopy(existing.posY, 0, next.posY, 0, copy);
+        System.arraycopy(existing.velX, 0, next.velX, 0, copy);
+        System.arraycopy(existing.velY, 0, next.velY, 0, copy);
+        for (int i = copy; i < newSize; i++) {
+            next.posX[i] = random.nextDouble(0, params.width());
+            next.posY[i] = random.nextDouble(0, params.height());
+            next.velX[i] = random.nextDouble(-params.maxSpeed(), params.maxSpeed());
+            next.velY[i] = random.nextDouble(-params.maxSpeed(), params.maxSpeed());
+        }
+        return next;
+    }
+
     public Boid(int size) {
         this.size = size;
         posX = new double[size];
