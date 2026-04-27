@@ -85,7 +85,6 @@
           <consoleOutputReporter>
             <disable>true</disable>
           </consoleOutputReporter>
-          <argLine>--add-opens uk.ac.gold.boids/uk.ac.gold.boids=ALL-UNNAMED</argLine>
         </configuration>
       </plugin>
       <plugin>

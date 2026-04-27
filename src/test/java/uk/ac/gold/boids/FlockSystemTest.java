@@ -16,7 +16,7 @@ class FlockSystemTest {
     @Test
     void test_updatePositions_movesBoidsWithVelocity() {
         FlockSystem fs = new FlockSystem();
-        Boid b = new Boid(1);
+        BoidComponent b = new BoidComponent(1);
         b.posX[0] = 400; b.posY[0] = 300;
         b.velX[0] = 1.0;
 
@@ -28,7 +28,7 @@ class FlockSystemTest {
     @Test
     void test_computeForces_separationPushesBoidsApart() {
         FlockSystem fs = new FlockSystem();
-        Boid pair = new Boid(2);
+        BoidComponent pair = new BoidComponent(2);
         pair.posX[0] = 400; pair.posY[0] = 300;
         pair.posX[1] = 405; pair.posY[1] = 300;
 

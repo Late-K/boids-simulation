@@ -10,7 +10,7 @@ class BoidTest {
 
     @Test
     void test_createRandom_positionsWithinBounds() {
-        Boid b = Boid.createRandom(20, params);
+        BoidComponent b = BoidComponent.createRandom(20, params);
         for (int i = 0; i < b.size; i++) {
             assertTrue(b.posX[i] >= 0 && b.posX[i] <= params.width());
             assertTrue(b.posY[i] >= 0 && b.posY[i] <= params.height());

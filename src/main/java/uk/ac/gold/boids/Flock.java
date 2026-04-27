@@ -4,19 +4,19 @@ package uk.ac.gold.boids;
 
 public class Flock {
 
-    private Boid boids;
+    private BoidComponent boids;
     private PredatorComponent predators;
     private final ObstacleComponent obstacles;
     private final FlockSystem flockSystem = new FlockSystem();
     private final PredatorSystem predatorSystem = new PredatorSystem();
 
     public Flock(SimulationParameters params) {
-        this.boids = Boid.createRandom(params.numberOfBoids(), params);
+        this.boids = BoidComponent.createRandom(params.numberOfBoids(), params);
         this.predators = PredatorComponent.createRandom(params.numberOfPredators(), params);
         this.obstacles = new ObstacleComponent(256);
     }
 
-    public Boid getBoids() {
+    public BoidComponent getBoids() {
         return boids;
     }
 
@@ -33,7 +33,7 @@ public class Flock {
     }
 
     public void setBoidCount(int count, SimulationParameters params) {
-        boids = Boid.createWithCount(boids, count, params);
+        boids = BoidComponent.createWithCount(boids, count, params);
     }
 
     public void setPredatorCount(int count, SimulationParameters params) {

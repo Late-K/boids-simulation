@@ -8,7 +8,7 @@ public class FlockSystem {
 
     private final ObstacleSystem obstacleSystem = new ObstacleSystem();
 
-    public void computeForces(Boid boids, PredatorComponent predators, ObstacleComponent obstacles, SimulationParameters params) {
+    public void computeForces(BoidComponent boids, PredatorComponent predators, ObstacleComponent obstacles, SimulationParameters params) {
         IntStream.range(0, boids.size).parallel().forEach(i -> {
             Vector2 acc = separation(i, boids, params)
                     .add(alignment(i, boids, params))
@@ -21,7 +21,7 @@ public class FlockSystem {
         });
     }
 
-    public void updatePositions(Boid boids, ObstacleComponent obstacles, SimulationParameters params, double dt) {
+    public void updatePositions(BoidComponent boids, ObstacleComponent obstacles, SimulationParameters params, double dt) {
         for (int i = 0; i < boids.size; i++) {
             Vector2 vel = new Vector2(boids.velX[i], boids.velY[i]);
             Vector2 acc = new Vector2(boids.accX[i], boids.accY[i]);
@@ -41,7 +41,7 @@ public class FlockSystem {
         }
     }
 
-    private Vector2 separation(int i, Boid boids, SimulationParameters params) {
+    private Vector2 separation(int i, BoidComponent boids, SimulationParameters params) {
         Vector2 pos = new Vector2(boids.posX[i], boids.posY[i]);
         Vector2 vel = new Vector2(boids.velX[i], boids.velY[i]);
         Vector2 steering = new Vector2(0, 0);
@@ -67,7 +67,7 @@ public class FlockSystem {
         return steering.set(0, 0);
     }
 
-    private Vector2 alignment(int i, Boid boids, SimulationParameters params) {
+    private Vector2 alignment(int i, BoidComponent boids, SimulationParameters params) {
         Vector2 pos = new Vector2(boids.posX[i], boids.posY[i]);
         Vector2 vel = new Vector2(boids.velX[i], boids.velY[i]);
         Vector2 steering = new Vector2(0, 0);
@@ -92,7 +92,7 @@ public class FlockSystem {
         return steering.set(0, 0);
     }
 
-    private Vector2 cohesion(int i, Boid boids, SimulationParameters params) {
+    private Vector2 cohesion(int i, BoidComponent boids, SimulationParameters params) {
         Vector2 pos = new Vector2(boids.posX[i], boids.posY[i]);
         Vector2 vel = new Vector2(boids.velX[i], boids.velY[i]);
         Vector2 centroid = new Vector2(0, 0);
@@ -118,7 +118,7 @@ public class FlockSystem {
         return centroid.set(0, 0);
     }
 
-    private Vector2 fleeFromPredators(int i, Boid boids, PredatorComponent predators, SimulationParameters params) {
+    private Vector2 fleeFromPredators(int i, BoidComponent boids, PredatorComponent predators, SimulationParameters params) {
         Vector2 pos = new Vector2(boids.posX[i], boids.posY[i]);
         Vector2 vel = new Vector2(boids.velX[i], boids.velY[i]);
         Vector2 steering = new Vector2(0, 0);
@@ -145,7 +145,7 @@ public class FlockSystem {
         return new Vector2(0, 0);
     }
 
-    private Vector2 avoidEdges(int i, Boid boids, SimulationParameters params) {
+    private Vector2 avoidEdges(int i, BoidComponent boids, SimulationParameters params) {
         double margin = params.width() * 0.1;
         double turnForce = params.maxForce() / 2.5;
         double sx = 0, sy = 0;

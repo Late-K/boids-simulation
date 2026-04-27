@@ -32,7 +32,7 @@ public class SimulationRenderer {
             drawObstacle(g, obstacles, i);
         }
 
-        Boid boids = flock.getBoids();
+        BoidComponent boids = flock.getBoids();
         for (int i = 0; i < boids.size; i++) {
             drawBoid(g, boids, i, params);
         }
@@ -49,7 +49,7 @@ public class SimulationRenderer {
         updateAndDrawFps(g, dt);
     }
 
-    private void drawBoid(GraphicsContext g, Boid boids, int i, SimulationParameters params) {
+    private void drawBoid(GraphicsContext g, BoidComponent boids, int i, SimulationParameters params) {
         double angle = Math.toDegrees(Math.atan2(boids.velY[i], boids.velX[i]));
 
         g.save();

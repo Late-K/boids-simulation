@@ -8,7 +8,7 @@ public class PredatorSystem {
 
     private final ObstacleSystem obstacleSystem = new ObstacleSystem();
 
-    public void computeForces(PredatorComponent predators, Boid boids, ObstacleComponent obstacles, SimulationParameters params) {
+    public void computeForces(PredatorComponent predators, BoidComponent boids, ObstacleComponent obstacles, SimulationParameters params) {
         IntStream.range(0, predators.size).parallel().forEach(i -> {
             Vector2 acc = avoidEdges(i, predators, params)
                 .add(obstacleSystem.avoid(predators.posX[i], predators.posY[i], params.predatorMaxForce(), obstacles, params.fleeRadius() * 0.4));
@@ -130,7 +130,7 @@ public class PredatorSystem {
         return centroid.set(0, 0);
     }
 
-    private Vector2 chaseOrIdle(int i, PredatorComponent predators, Boid boids, SimulationParameters params) {
+    private Vector2 chaseOrIdle(int i, PredatorComponent predators, BoidComponent boids, SimulationParameters params) {
         Vector2 pos = new Vector2(predators.posX[i], predators.posY[i]);
         Vector2 vel = new Vector2(predators.velX[i], predators.velY[i]);
 

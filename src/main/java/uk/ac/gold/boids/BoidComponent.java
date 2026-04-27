@@ -4,7 +4,7 @@ import java.util.Random;
 
 // boids
 
-public class Boid {
+public class BoidComponent {
 
     public final int size;
 
@@ -17,8 +17,8 @@ public class Boid {
 
     private static Random random = new Random(35);
 
-    public static Boid createRandom(int size, SimulationParameters params) {
-        Boid components = new Boid(size);
+    public static BoidComponent createRandom(int size, SimulationParameters params) {
+        BoidComponent components = new BoidComponent(size);
         for (int i = 0; i < size; i++) {
             components.posX[i] = random.nextDouble(0, params.width());
             components.posY[i] = random.nextDouble(0, params.height());
@@ -28,8 +28,8 @@ public class Boid {
         return components;
     }
 
-    public static Boid createWithCount(Boid existing, int newSize, SimulationParameters params) {
-        Boid next = new Boid(newSize);
+    public static BoidComponent createWithCount(BoidComponent existing, int newSize, SimulationParameters params) {
+        BoidComponent next = new BoidComponent(newSize);
         int copy = Math.min(existing.size, newSize);
         System.arraycopy(existing.posX, 0, next.posX, 0, copy);
         System.arraycopy(existing.posY, 0, next.posY, 0, copy);
@@ -44,7 +44,7 @@ public class Boid {
         return next;
     }
 
-    public Boid(int size) {
+    public BoidComponent(int size) {
         this.size = size;
         posX = new double[size];
         posY = new double[size];
